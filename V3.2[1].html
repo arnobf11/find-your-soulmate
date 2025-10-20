@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SolMate V3.1 — Firebase Auth Prototype (Extended)</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070712; --card:#0f1220; --muted:#9aa0ad; --accent:#9c27b0;
+      --pink:#f06292; --glass: rgba(255,255,255,0.03); --radius:14px;
+      --success:#4caf50; --danger:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Poppins,system-ui,Arial;background:linear-gradient(180deg,#05050a 0%, #0b0d18 100%);color:#eee;margin:0;min-height:100vh}
+    .app{max-width:420px;margin:12px auto;padding:12px}
+    header{display:flex;align-items:center;gap:12px;padding:6px 8px}
+    h1{font-size:20px;margin:0}
+    .muted{color:var(--muted);font-size:13px}
+    .pill{background:rgba(255,255,255,0.02);padding:6px 10px;border-radius:999px;font-size:13px}
+    .card{background:var(--card);border-radius:var(--radius);padding:12px;margin-bottom:12px;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+    .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;width:420px;max-width:92%;display:flex;justify-content:space-between;padding:10px;background:linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:999px}
+    .nav button{background:none;border:0;color:var(--muted);font-size:18px;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .nav button.active{color:var(--pink)}
+    .page{display:none}
+    .page.active{display:block}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .live-card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;overflow:hidden;position:relative;height:160px;cursor:pointer}
+    .live-card img{width:100%;height:100%;object-fit:cover;filter:grayscale(0.04) brightness(0.9)}
+    .live-meta{position:absolute;left:8px;bottom:8px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.6);font-weight:600}
+    .live-badge{position:absolute;right:8px;top:8px;background:var(--pink);padding:6px 8px;border-radius:999px;font-size:12px}
+    .nearby-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .nearby-card{background:var(--glass);border-radius:10px;padding:8px;text-align:center;font-size:12px}
+    .nearby-card img{width:100%;height:64px;object-fit:cover;border-radius:8px}
+    .chat-list{display:flex;flex-direction:column;gap:10px}
+    .chat-item{display:flex;gap:10px;align-items:center}
+    .avatar{width:44px;height:44px;border-radius:10px;background:linear-gradient(90deg,#444,#222);display:flex;align-items:center;justify-content:center;color:#fff}
+    .post{background:var(--card);padding:10px;border-radius:12px}
+    .post img{width:100%;border-radius:8px}
+    .profile-top{display:flex;gap:12px;align-items:center}
+    .profile-top .avatar-lg{width:76px;height:76px;border-radius:12px;background:linear-gradient(90deg,#333,#111);display:flex;align-items:center;justify-content:center}
+    .auth-container{display:flex;align-items:center;justify-content:center;height:calc(100vh - 80px)}
+    .auth-card{background:var(--card);padding:20px;border-radius:16px;width:90%;max-width:380px;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+    .auth-card input, .auth-card textarea, .form-control{width:100%;padding:10px;border:0;border-radius:10px;margin:6px 0;background:rgba(255,255,255,0.03);color:#fff}
+    .auth-card textarea{min-height:80px;resize:vertical}
+    .auth-card button{width:100%;background:var(--pink);border:0;padding:10px;border-radius:10px;color:#111;font-weight:700;margin-top:8px;cursor:pointer}
+    .link{color:var(--accent);cursor:pointer}
+    .small{font-size:13px;color:var(--muted)}
+    .settings-list{display:flex;flex-direction:column;gap:10px}
+    .setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px}
+    .toggle{width:44px;height:22px;border-radius:999px;background:rgba(255,255,255,0.06);position:relative;cursor:pointer}
+    .toggle .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .18s}
+    .toggle.on{background:linear-gradient(90deg,var(--pink),#8e24aa)}
+    .toggle.on .knob{left:24px}
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .badge{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:13px}
+    .small-muted{font-size:12px;color:var(--muted)}
+    .save-inline{background:var(--success);border:0;padding:8px 10px;border-radius:8px;color:#111;cursor:pointer}
+    .danger{background:var(--danger);border:0;padding:8px 10px;border-radius:8px;color:#111;cursor:pointer}
+    .meta{font-size:12px;color:var(--muted);margin-top:6px}
+    @media (max-width:420px){.app{padding:6px;margin:6px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1 id="pageTitle">Live</h1>
+      <div style="margin-left:auto" class="muted" id="userEmail">Not logged in</div>
+    </header>
+
+    <!-- LIVE (kept minimal) -->
+    <main id="livePage" class="page active">
+      <section class="card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <div class="pill">Popular</div><div class="muted">Global</div>
+        </div>
+        <div class="grid">
+          <div class="live-card" onclick="openPreview('Myanmar • living on a prayer')">
+            <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=800" alt="">
+            <div class="live-badge">LIVE • 26</div>
+            <div class="live-meta">🇲🇲 Myanmar<br><small class="muted">LV 21</small></div>
+          </div>
+          <div class="live-card" onclick="openPreview('Indonesia • SAYANG')">
+            <img src="https://images.unsplash.com/photo-1603415526960-f7e0328b20c4?q=80&w=800" alt="">
+            <div class="live-badge">LIVE • 32</div>
+            <div class="live-meta">🇮🇩 Indonesia<br><small class="muted">LV 25</small></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Nearby -->
+    <main id="nearbyPage" class="page">
+      <section class="card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <div class="pill">Nearby</div><div class="muted">Online</div>
+        </div>
+        <div class="nearby-grid">
+          <div class="nearby-card"><img src="https://images.unsplash.com/photo-1545996124-3a5bce3d2a6e?q=80&w=400" alt=""><div class="muted">Ha_Ru<br><small>90% • 90 ft</small></div></div>
+          <div class="nearby-card"><img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400" alt=""><div class="muted">mk_067_XXX<br><small>496 ft</small></div></div>
+          <div class="nearby-card"><img src="https://images.unsplash.com/photo-1531123414780-fc3e6f5b5f2c?q=80&w=400" alt=""><div class="muted">Ah_Phyo<br><small>651 ft</small></div></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Messages -->
+    <main id="messagesPage" class="page">
+      <section class="card">
+        <div class="pill">Family</div>
+        <div class="chat-list">
+          <div class="chat-item"><div class="avatar">Z</div><div><strong>Khun Mai</strong><div class="small">I love you </div></div></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Discover -->
+    <main id="discoverPage" class="page">
+      <section class="card">
+        <div class="pill">For You</div>
+        <div class="post">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+            <div class="avatar">J</div>
+            <div><strong>Jay_Vicente_prince</strong><div class="small">2 hrs ago • 5'8\" • 75 lbs</div></div>
+            <div style="margin-left:auto" class="pill">Follow</div>
+          </div>
+          <img src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=800" alt="">
+          <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
+            <div class="muted">❤️ 120</div><div class="muted">💬 14</div><div class="muted">🔁 3</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Profile (Extended) -->
+    <main id="profilePage" class="page">
+      <section class="card">
+        <div class="profile-top">
+          <div class="avatar-lg" id="profileAvatar">HR</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <strong id="displayName">Ha__Ru</strong>
+                <div class="small" id="displayId">ID: ve1k3y</div>
+                <div class="meta" id="displayAge">Age: —</div>
+              </div>
+              <div>
+                <button title="Edit profile" id="openEditProfile" style="background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer">✏️</button>
+                <button title="Settings" id="openSettingsBtn2" style="background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer">⚙️</button>
+              </div>
+            </div>
+            <div class="small" id="profileStatus">Edit 90%</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="card" style="padding:12px;margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong id="emotionalGoalDisplay">Purpose:</strong>
+                <div class="small-muted" id="purposeText">Looking for friends</div>
+              </div>
+              <div>
+                <div class="badge" id="connectionLevelBadge">Connection: —</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:12px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <div class="pill">About</div><div class="muted">Profile details</div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <div style="flex:1;min-width:140px">
+                <div class="small-muted">Bio</div>
+                <div id="bioText" class="meta">—</div>
+              </div>
+              <div style="flex:1;min-width:140px">
+                <div class="small-muted">Interests</div>
+                <div id="interestsText" class="meta">—</div>
+              </div>
+            </div>
+
+            <div style="margin-top:10px">
+              <div class="small-muted">Education</div>
+              <div id="educationText" class="meta">—</div>
+            </div>
+
+            <div style="margin-top:10px">
+              <div class="small-muted">Skills</div>
+              <div id="skillsText" class="meta">—</div>
+            </div>
+
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button id="viewEmotionalReportBtn" class="save-inline">View Emotional Report</button>
+              <button id="messageBtn" class="save-inline" style="background:rgba(255,255,255,0.06);color:#fff">Message</button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Settings Page (Detailed) -->
+    <main id="settingsPage" class="page">
+      <section class="card">
+        <h3>⚙️ Settings</h3>
+        <div style="margin-top:12px" class="settings-list">
+          <div class="setting-row">
+            <div>
+              <strong>Account</strong><div class="meta small-muted">Change email, password, or deactivate</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button id="manageAccountBtn" class="badge">Manage</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Privacy & Safety</strong><div class="meta small-muted">Who can message you, block list</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button id="privacyManageBtn" class="badge">Manage</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Who can message me</strong><div class="meta small-muted">Control incoming messages</div>
+            </div>
+            <div>
+              <select id="whoCanMessage" class="form-control" style="min-width:140px;background:transparent;color:#fff;border:0">
+                <option value="everyone">Everyone</option>
+                <option value="friends">Friends only</option>
+                <option value="noone">No one</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Hide mood status</strong><div class="meta small-muted">Keep your mood private</div>
+            </div>
+            <div>
+              <div id="toggleHideMood" class="toggle"><div class="knob"></div></div>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Appearance</strong><div class="meta small-muted">Theme & font</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button id="themeToggleBtn" class="badge">Toggle theme</button>
+              <button id="fontIncBtn" class="badge">A+</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Notifications</strong><div class="meta small-muted">Message, friend request alerts</div>
+            </div>
+            <div>
+              <div id="toggleNotify" class="toggle on"><div class="knob"></div></div>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Emotional Connection</strong><div class="meta small-muted">Manage bonding data</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button id="resetConnectionBtn" class="danger">Reset</button>
+              <button id="exportConnectionBtn" class="badge">Export</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button id="saveSettingsBtn" class="save-inline">Save Settings</button>
+            <button id="logoutBtn2" class="danger">Log Out</button>
+          </div>
+
+          <div class="meta" style="margin-top:8px">Version: <strong>v3.1</strong> • Developer: Haruto & Jhon</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Login Page (kept) -->
+    <main id="loginPage" class="page">
+      <div class="auth-container">
+        <div class="auth-card">
+          <h2 style="margin-bottom:6px">Log In</h2>
+          <input id="loginEmail" type="email" placeholder="Email" />
+          <input id="loginPassword" type="password" placeholder="Password" />
+          <button id="loginBtn">Log In</button>
+
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <button id="googleLoginBtn" style="flex:1;background:#fff;color:#111;border-radius:8px;padding:8px;border:0;cursor:pointer">Sign in with Google</button>
+            <button id="gotoSignup" style="flex:1;background:var(--glass);border:0;padding:8px;border-radius:8px;color:var(--muted);cursor:pointer">Sign up</button>
+          </div>
+
+          <div class="small" style="margin-top:10px">Don't have account? <span class="link" onclick="goto('signup')">Sign up</span></div>
+          <div id="authError" class="small" style="color:#ff6b6b;margin-top:8px;display:none"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Signup Page (kept) -->
+    <main id="signupPage" class="page">
+      <div class="auth-container">
+        <div class="auth-card">
+          <h2 style="margin-bottom:6px">Sign Up</h2>
+          <input id="signupName" type="text" placeholder="Display name" />
+          <input id="signupEmail" type="email" placeholder="Email" />
+          <input id="signupPassword" type="password" placeholder="Password (6+ chars)" />
+          <button id="signupBtn">Create Account</button>
+
+          <div class="small" style="margin-top:10px">Already have an account? <span class="link" onclick="goto('login')">Log in</span></div>
+          <div id="signupError" class="small" style="color:#ff6b6b;margin-top:8px;display:none"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--card);padding:12px;border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow:auto">
+        <h3>Edit Profile</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input id="editDisplayName" class="form-control" placeholder="Display name" />
+          <input id="editAge" class="form-control" placeholder="Age" type="number" />
+          <input id="editBirthday" class="form-control" placeholder="Birthday (YYYY-MM-DD)" />
+          <select id="editGender" class="form-control">
+            <option value="">Prefer not to say</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+          <input id="editEducation" class="form-control" placeholder="Education (e.g. BSc - Computer Science)" />
+          <input id="editSkills" class="form-control" placeholder="Skills (comma separated)" />
+          <input id="editInterests" class="form-control" placeholder="Interests / Hobbies (comma separated)" />
+          <textarea id="editBio" class="form-control" placeholder="Short bio"></textarea>
+          <input id="editPurpose" class="form-control" placeholder="Why use SolMate? (purpose)" />
+          <div style="display:flex;gap:8px">
+            <button id="saveProfileBtn" class="save-inline">Save</button>
+            <button id="cancelEditProfile" class="danger">Cancel</button>
+          </div>
+          <div id="profileMsg" class="meta" style="display:none;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- modal preview -->
+    <div id="previewModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--card);padding:12px;border-radius:12px;width:100%;max-width:420px">
+        <div id="previewTitle" style="font-weight:700;margin-bottom:8px">Live Preview</div>
+        <div style="height:260px;background:#000;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px"><button onclick="closePreview()" style="background:transparent;border:0;color:var(--muted);cursor:pointer">Close</button><button style="background:var(--pink);border:0;padding:8px 12px;border-radius:10px;color:#111;cursor:pointer">Join Live</button></div>
+      </div>
+    </div>
+
+    <!-- Bottom nav -->
+    <nav class="nav">
+      <button id="navLive" class="active" onclick="goto('live')">🏠</button>
+      <button id="navNearby" onclick="goto('nearby')">🌐</button>
+      <button id="navMessages" onclick="goto('messages')">💬</button>
+      <button id="navDiscover" onclick="goto('discover')">🔍</button>
+      <button id="navProfile" onclick="goto('profile')">👤</button>
+    </nav>
+
+  </div>
+
+  <!-- Firebase JS SDK (v9 modular) -->
+  <script type="module">
+    // --------------- IMPORTANT ---------------
+    // Replace the firebaseConfig object below with your Firebase project's configuration.
+    // Get it from Firebase console -> Project Settings -> SDK setup and configuration.
+    // -----------------------------------------
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+          projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+    // OPTIONAL: Firestore (commented out by default)
+    // Uncomment if you will save profiles to Firestore and also add the import in the top line.
+    // import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+    // init firebase app
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    // const db = getFirestore(app); // uncomment if using Firestore
+
+    // ---- Helper DOM refs ----
+    const pageTitle = document.getElementById('pageTitle');
+    const userEmailEl = document.getElementById('userEmail');
+
+    // pages map helpers
+    function hideAllPages(){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    }
+    function goto(page) {
+      const pageId = {
+        live:'livePage', nearby:'nearbyPage', messages:'messagesPage', discover:'discoverPage', profile:'profilePage',
+        settings:'settingsPage', login:'loginPage', signup:'signupPage'
+      }[page];
+      if (!pageId) return;
+      hideAllPages();
+      document.getElementById(pageId).classList.add('active');
+      const navid = document.getElementById('nav'+page.charAt(0).toUpperCase()+page.slice(1));
+      if (navid) navid.classList.add('active');
+      const titles = { live:'Live', nearby:'Nearby', messages:'Message', discover:'Discover', profile:'Me', settings:'Settings', login:'Login', signup:'Sign Up' };
+      if (pageTitle) pageTitle.innerText = titles[page] || '';
+    }
+    window.goto = goto;
+
+    // preview modal controls
+    window.openPreview = function(title){
+      document.getElementById('previewModal').style.display='flex';
+      document.getElementById('previewTitle').innerText = title;
+    }
+    window.closePreview = function(){ document.getElementById('previewModal').style.display='none'; }
+
+    // ---- Auth: Signup / Login / Google ----
+   document.getElementById('signupBtn').addEventListener('click', async ()=>{
+      const name = document.getElementById('signupName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const pass = document.getElementById('signupPassword').value;
+      const errEl = document.getElementById('signupError');
+      errEl.style.display='none';
+      try{
+        if (pass.length < 6) throw new Error('Password must be 6+ characters');
+        const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+        if (name) await updateProfile(userCred.user, { displayName: name });
+        // initialize profile defaults in localStorage
+        saveProfileLocally({ displayName: name, email: email });
+        goto('live');
+      } catch(err){
+        errEl.style.display='block';
+        errEl.innerText = err.message || 'Sign up error';
+      }
+    });
+
+    document.getElementById('loginBtn').addEventListener('click', async ()=>{
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPassword').value;
+      const errEl = document.getElementById('authError');
+      errEl.style.display='none';
+      try{
+        await signInWithEmailAndPassword(auth, email, pass);
+        goto('live');
+      } catch(err){
+        errEl.style.display='block';
+        errEl.innerText = err.message || 'Login error';
+      }
+    });
+
+    document.getElementById('googleLoginBtn').addEventListener('click', async ()=>{
+      try{
+        await signInWithPopup(auth, provider);
+        goto('live');
+      }catch(err){
+        document.getElementById('authError').style.display='block';
+        document.getElementById('authError').innerText = err.message || 'Google sign-in failed';
+      }
+    });
+
+    document.getElementById('gotoSignup').addEventListener('click', ()=> goto('signup'));
+
+    // FIXED: Removed the problematic line that was causing the error
+    // document.getElementById('openSettingsBtn').addEventListener('click', ()=> goto('settings'));
+    
+    document.getElementById('openSettingsBtn2').addEventListener('click', ()=> goto('settings'));
+
+    // logout buttons
+    async function doSignOut(){
+      try{
+        await signOut(auth);
+      }catch(e){ console.warn('signout error', e) }
+      goto('login');
+    }
+    document.getElementById('logoutBtn2').addEventListener('click', doSignOut);
+
+    // ---- Profile local storage helpers ----
+    const PROFILE_KEY = 'solmate_profile_v3';
+
+    function defaultProfile(){
+      return {
+        displayName: '',
+        email: '',
+        age: '',
+        birthday: '',
+        gender: '',
+        education: '',
+        skills: '',
+        interests: '',
+        bio: '',
+        purpose: '',
+        connectionLevel: '0'
+      };
+    }
+
+    function saveProfileLocally(profile){
+      const p = Object.assign(defaultProfile(), profile || {});
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+      return p;
+    }
+    function loadProfileLocally(){
+      try{
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (!raw) return defaultProfile();
+        return Object.assign(defaultProfile(), JSON.parse(raw));
+      }catch(e){
+        return defaultProfile();
+      }
+    }
+
+    // update profile UI from data
+    function populateProfileUI(profile){
+      document.getElementById('displayName').innerText = profile.displayName || (profile.email ? profile.email.split('@')[0] : 'User');
+      document.getElementById('profileStatus').innerText = profile.email || '';
+      document.getElementById('displayId').innerText = profile.email ? `ID: ${profile.email.split('@')[0]}` : '';
+      document.getElementById('displayAge').innerText = profile.age ? `Age: ${profile.age}` : '';
+      document.getElementById('bioText').innerText = profile.bio || '—';
+      document.getElementById('interestsText').innerText = profile.interests || '—';
+      document.getElementById('educationText').innerText = profile.education || '—';
+      document.getElementById('skillsText').innerText = profile.skills || '—';
+      document.getElementById('purposeText').innerText = profile.purpose || '—';
+      document.getElementById('emotionalGoalDisplay').innerText = 'Purpose:';
+      document.getElementById('connectionLevelBadge').innerText = `Connection: ${profile.connectionLevel || '—'}`;
+      // avatar initials
+      const initials = (profile.displayName || profile.email || 'U').split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+      document.getElementById('profileAvatar').innerText = initials;
+    }
+
+    // ---- Edit profile modal behavior ----
+    document.getElementById('openEditProfile').addEventListener('click', ()=>{
+      const p = loadProfileLocally();
+      document.getElementById('editDisplayName').value = p.displayName || '';
+      document.getElementById('editAge').value = p.age || '';
+      document.getElementById('editBirthday').value = p.birthday || '';
+      document.getElementById('editGender').value = p.gender || '';
+      document.getElementById('editEducation').value = p.education || '';
+      document.getElementById('editSkills').value = p.skills || '';
+      document.getElementById('editInterests').value = p.interests || '';
+      document.getElementById('editBio').value = p.bio || '';
+      document.getElementById('editPurpose').value = p.purpose || '';
+      document.getElementById('profileMsg').style.display = 'none';
+      document.getElementById('editProfileModal').style.display = 'flex';
+    });
+
+    document.getElementById('cancelEditProfile').addEventListener('click', ()=>{
+      document.getElementById('editProfileModal').style.display = 'none';
+    });
+
+    document.getElementById('saveProfileBtn').addEventListener('click', async ()=>{
+      const newP = {
+        displayName: document.getElementById('editDisplayName').value.trim(),
+        age: document.getElementById('editAge').value.trim(),
+        birthday: document.getElementById('editBirthday').value.trim(),
+        gender: document.getElementById('editGender').value,
+        education: document.getElementById('editEducation').value.trim(),
+        skills: document.getElementById('editSkills').value.trim(),
+        interests: document.getElementById('editInterests').value.trim(),
+        bio: document.getElementById('editBio').value.trim(),
+        purpose: document.getElementById('editPurpose').value.trim()
+      };
+      // calculate a simple connection level (example: based on filled fields)
+      let filled = 0;
+      Object.values(newP).forEach(v=>{ if (v && v.length>0) filled++; });
+      newP.connectionLevel = Math.min(100, Math.round((filled / 8) * 100)); // 0-100%
+
+      // save locally
+      const saved = saveProfileLocally(newP);
+
+      // attempt to update firebase displayName if logged in
+      try{
+        const user = auth.currentUser;
+        if (user && newP.displayName) {
+          await updateProfile(user, { displayName: newP.displayName });
+        }
+      }catch(e){
+        console.warn('profile update to firebase failed', e);
+      }
+     // OPTIONAL: save to Firestore (uncomment if Firestore enabled)
+      /*
+      try{
+        if (auth.currentUser) {
+          const uid = auth.currentUser.uid;
+          await setDoc(doc(db, 'profiles', uid), saved, { merge: true });
+        }
+      }catch(e){
+        console.warn('save to firestore failed', e);
+      }
+      */
+
+      populateProfileUI(saved);
+      document.getElementById('profileMsg').style.display = 'block';
+      document.getElementById('profileMsg').innerText = 'Profile saved locally';
+      setTimeout(()=>{ document.getElementById('editProfileModal').style.display = 'none'; }, 900);
+    });
+
+    // ---- Settings toggles ----
+    function toggleElement(el, on){
+      if (on) el.classList.add('on'); else el.classList.remove('on');
+    }
+
+    // initialize toggles from localStorage
+    const SETTINGS_KEY = 'solmate_settings_v3';
+    function defaultSettings(){ return { hideMood:false, notifications:true, whoCanMessage:'everyone', theme:'dark', fontSize:14 }; }
+    function loadSettings(){
+      try{
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return defaultSettings();
+        return Object.assign(defaultSettings(), JSON.parse(raw));
+      }catch(e){ return defaultSettings(); }
+    }
+    function saveSettings(s){
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+      return s;
+    }
+
+    // wire settings UI
+    const toggleHideMood = document.getElementById('toggleHideMood');
+    const toggleNotify = document.getElementById('toggleNotify');
+    const whoCanMessageEl = document.getElementById('whoCanMessage');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const fontIncBtn = document.getElementById('fontIncBtn');
+
+    function initSettingsUI(){
+      const s = loadSettings();
+      toggleElement(toggleHideMood, s.hideMood);
+      toggleElement(toggleNotify, s.notifications);
+      whoCanMessageEl.value = s.whoCanMessage || 'everyone';
+      // theme and font size
+      if (s.theme === 'light') document.body.style.background = '#f6f6f8';
+      document.documentElement.style.fontSize = (s.fontSize || 14) + 'px';
+    }
+    initSettingsUI();
+
+    toggleHideMood.addEventListener('click', ()=>{
+      const s = loadSettings();
+      s.hideMood = !s.hideMood;
+      saveSettings(s);
+      toggleElement(toggleHideMood, s.hideMood);
+    });
+    toggleNotify.addEventListener('click', ()=>{
+      const s = loadSettings();
+      s.notifications = !s.notifications;
+      saveSettings(s);
+      toggleElement(toggleNotify, s.notifications);
+    });
+    whoCanMessageEl.addEventListener('change', ()=>{
+      const s = loadSettings();
+      s.whoCanMessage = whoCanMessageEl.value;
+      saveSettings(s);
+    });
+    themeToggleBtn.addEventListener('click', ()=>{
+      const s = loadSettings();
+      s.theme = s.theme === 'dark' ? 'light' : 'dark';
+      saveSettings(s);
+      if (s.theme === 'light') document.body.style.background = '#f6f6f8'; else document.body.style.background = 'linear-gradient(180deg,#05050a 0%, #0b0d18 100%)';
+    });
+    fontIncBtn.addEventListener('click', ()=>{
+      const s = loadSettings();
+      s.fontSize = (s.fontSize || 14) + 1;
+      if (s.fontSize > 18) s.fontSize = 12;
+      saveSettings(s);
+      document.documentElement.style.fontSize = s.fontSize + 'px';
+    });
+ document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
+      const s = loadSettings();
+      s.whoCanMessage = whoCanMessageEl.value;
+      saveSettings(s);
+      alert('Settings saved locally');
+    });
+
+    document.getElementById('resetConnectionBtn').addEventListener('click', ()=>{
+      const p = loadProfileLocally();
+      p.connectionLevel = '0';
+      saveProfileLocally(p);
+      populateProfileUI(p);
+      alert('Connection data reset');
+    });
+
+    document.getElementById('exportConnectionBtn').addEventListener('click', ()=>{
+      const p = loadProfileLocally();
+      const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'solmate_profile.json'; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // ---- onAuthStateChanged: fill UI ----
+    onAuthStateChanged(auth, async user => {
+      if (user) {
+        const name = user.displayName || user.email || 'Anonymous';
+        userEmailEl.innerText = name;
+        // load local profile; if empty, initialize with user info
+        let p = loadProfileLocally();
+        if (!p.displayName && user.displayName) p.displayName = user.displayName;
+        if (!p.email && user.email) p.email = user.email;
+        saveProfileLocally(p);
+        populateProfileUI(p);
+        goto('profile');
+        // OPTIONAL: load from Firestore if you want authoritative profile
+        /*
+        try{
+          const docRef = doc(db, 'profiles', user.uid);
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            saveProfileLocally(data);
+            populateProfileUI(data);
+          }
+        }catch(e){}
+        */
+      } else {
+        userEmailEl.innerText = 'Not logged in';
+        const p = loadProfileLocally();
+        populateProfileUI(p);
+        goto('login');
+      }
+    });
+
+    // small UI wiring
+    document.getElementById('openPreview').onclick = ()=>{};
+    document.getElementById('viewEmotionalReportBtn').addEventListener('click', ()=>{
+      const p = loadProfileLocally();
+      alert(`Emotional Report\nConnection: ${p.connectionLevel || '0'}%\nPurpose: ${p.purpose || '—'}`);
+    });
+
+    // initialize UI data on page load
+    (function init(){
+      populateProfileUI(loadProfileLocally());
+      initSettingsUI();
+    })();
+
+  </script>
+</body>
+</html>
