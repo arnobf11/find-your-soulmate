@@ -1,153 +1,232 @@
 <!doctype html>
-
 <html lang="my">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Realtime Myanmar Time (အချိန်မြန်မာ)</title>
+  <title>🌍 Realtime World Clock</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600&display=swap" rel="stylesheet" />
+
   <style>
-    :root{
-      --bg:#0f172a;
-      --card:#0b1220;
-      --accent:#60a5fa;
-      --glass: rgba(255,255,255,0.03);
-      --muted: #9ca3af;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    :root {
+      --bg: #0f172a;
+      --card: #0b1220;
+      --accent: #60a5fa;
+      --glass: rgba(255,255,255,0.06);
+      --text: #e2e8f0;
     }
-    *{box-sizing:border-box}
-    body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#071024 0%, #071533 100%);margin:0;padding:24px;color:#e6eef8}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));backdrop-filter:blur(6px);border-radius:14px;padding:28px;width:420px;max-width:96vw;box-shadow:0 8px 30px rgba(2,6,23,0.7);border:1px solid rgba(255,255,255,0.04)}
-    .title{display:flex;align-items:center;gap:12px}
-    .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7dd3fc);display:flex;align-items:center;justify-content:center;font-weight:700;color:#032;box-shadow:0 6px 18px rgba(96,165,250,0.12)}
-    h1{font-size:18px;margin:0}
-    p.subtitle{margin:6px 0 18px;color:var(--muted);font-size:13px}.clock{display:flex;align-items:baseline;gap:12px}
-.time{font-variant-numeric:tabular-nums;font-size:48px;font-weight:700;letter-spacing:0.02em}
-.ampm{font-size:14px;color:var(--muted);}
-.seconds{font-size:18px;color:var(--muted);}
 
-.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-.chip{background:var(--glass);padding:8px 12px;border-radius:10px;font-size:13px;color:var(--muted);border:1px solid rgba(255,255,255,0.02)}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Rajdhani', sans-serif;
+    }
 
-.controls{display:flex;gap:8px;margin-top:18px}
-button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:10px;color:var(--muted);cursor:pointer}
-button.active{border-color:var(--accent);color:var(--accent);box-shadow:0 8px 20px rgba(96,165,250,0.06)}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+    }
 
-.footer{margin-top:18px;color:var(--muted);font-size:13px}
+    .clock-card {
+      background: var(--card);
+      border-radius: 2rem;
+      box-shadow: 0 0 60px rgba(96,165,250,0.1);
+      padding: 2rem 3rem;
+      text-align: center;
+      backdrop-filter: blur(15px);
+    }
 
-@media (max-width:420px){.time{font-size:40px}}
+    h1 {
+      font-size: 1.5rem;
+      color: var(--text);
+      opacity: 0.9;
+      letter-spacing: 2px;
+      margin-bottom: 1rem;
+    }
 
+    .time {
+      font-size: 6rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-shadow: 0 0 25px rgba(96,165,250,0.8), 0 0 50px rgba(37,99,235,0.5);
+      letter-spacing: 4px;
+    }
+
+    .seconds {
+      font-size: 1.4rem;
+      color: #93c5fd;
+      margin-top: -0.5rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    select, button {
+      background: var(--glass);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 0.75rem;
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(96,165,250,0.6);
+    }
+
+    .date-info {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1.2rem;
+      flex-wrap: wrap;
+      color: #a5b4fc;
+    }
+
+    footer {
+      margin-top: 1.2rem;
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
   </style>
 </head>
+
 <body>
-  <main class="card" role="main">
-    <div class="title">
-      <div class="logo">MY</div>
-      <div>
-        <h1>Realtime Myanmar Time</h1>
-        <p class="subtitle">မြန်မာ (Asia/Yangon)</p>
-      </div>
-    </div><div style="margin-top:14px">
-  <div class="clock" aria-live="polite">
-    <div class="time" id="time">--:--:--</div>
-    <div style="display:flex;flex-direction:column;align-items:flex-start;">
-      <div class="seconds" id="seconds">-- s</div>
-      <div class="ampm" id="ampm">--</div>
+  <div class="clock-card">
+    <h1>Find Your Time </h1>
+    <div class="time" id="time">00:00</div>
+    <div class="seconds" id="seconds">00s</div>
+
+    <div class="controls">
+      <select id="timezone">
+        <!-- Default -->
+        <option value="Asia/Yangon" selected>🇲🇲 Myanmar</option>
+
+        <!-- Southeast Asia -->
+        <option value="Asia/Bangkok">🇹🇭 Thailand</option>
+        <option value="Asia/Vientiane">🇱🇦 Laos</option>
+        <option value="Asia/Phnom_Penh">🇰🇭 Cambodia</option>
+        <option value="Asia/Singapore">🇸🇬 Singapore</option>
+        <option value="Asia/Jakarta">🇮🇩 Indonesia (Jakarta)</option>
+        <option value="Asia/Makassar">🇮🇩 Indonesia (Makassar)</option>
+        <option value="Asia/Jayapura">🇮🇩 Indonesia (Papua)</option>
+        <option value="Asia/Kuala_Lumpur">🇲🇾 Malaysia</option>
+        <option value="Asia/Manila">🇵🇭 Philippines</option>
+        <option value="Asia/Brunei">🇧🇳 Brunei</option>
+        <option value="Asia/Dili">🇹🇱 Timor-Leste</option>
+        <option value="Asia/Hanoi">🇻🇳 Vietnam</option>
+
+        <!-- Chinese-speaking regions -->
+        <option value="Asia/Shanghai">🇨🇳 China (Mainland)</option>
+        <option value="Asia/Hong_Kong">🇭🇰 Hong Kong</option>
+        <option value="Asia/Macau">🇲🇴 Macau</option>
+        <option value="Asia/Taipei">🇹🇼 Taiwan</option>
+
+        <!-- South Asia -->
+        <option value="Asia/Kolkata">🇮🇳 India</option>
+        <option value="Asia/Kathmandu">🇳🇵 Nepal</option>
+        <option value="Asia/Colombo">🇱🇰 Sri Lanka</option>
+        <option value="Asia/Dhaka">🇧🇩 Bangladesh</option>
+        <option value="Asia/Karachi">🇵🇰 Pakistan</option>
+        <option value="Asia/Kabul">🇦🇫 Afghanistan</option>
+        <option value="Asia/Tashkent">🇺🇿 Uzbekistan</option>
+
+        <!-- East Asia -->
+        <option value="Asia/Tokyo">🇯🇵 Japan</option>
+        <option value="Asia/Seoul">🇰🇷 South Korea</option>
+        <option value="Asia/Pyongyang">🇰🇵 North Korea</option>
+        <option value="Asia/Ulaanbaatar">🇲🇳 Mongolia</option>
+
+        <!-- Central Asia -->
+        <option value="Asia/Almaty">🇰🇿 Kazakhstan</option>
+        <option value="Asia/Bishkek">🇰🇬 Kyrgyzstan</option>
+        <option value="Asia/Dushanbe">🇹🇯 Tajikistan</option>
+        <option value="Asia/Ashgabat">🇹🇲 Turkmenistan</option>
+
+        <!-- Middle East / West Asia -->
+        <option value="Asia/Dubai">🇦🇪 UAE</option>
+        <option value="Asia/Qatar">🇶🇦 Qatar</option>
+        <option value="Asia/Kuwait">🇰🇼 Kuwait</option>
+        <option value="Asia/Bahrain">🇧🇭 Bahrain</option>
+        <option value="Asia/Riyadh">🇸🇦 Saudi Arabia</option>
+        <option value="Asia/Tehran">🇮🇷 Iran</option>
+        <option value="Asia/Baghdad">🇮🇶 Iraq</option>
+        <option value="Asia/Jerusalem">🇮🇱 Israel</option>
+        <option value="Asia/Amman">🇯🇴 Jordan</option>
+        <option value="Asia/Beirut">🇱🇧 Lebanon</option>
+        <option value="Asia/Damascus">🇸🇾 Syria</option>
+        <option value="Asia/Tbilisi">🇬🇪 Georgia</option>
+        <option value="Asia/Yerevan">🇦🇲 Armenia</option>
+        <option value="Asia/Baku">🇦🇿 Azerbaijan</option>
+      </select>
+
+      <button id="t12">12-hour</button>
+      <button id="t24" class="active">24-hour</button>
     </div>
+
+    <div class="date-info">
+      <div id="date"></div>
+      <div id="day"></div>
+      <div id="zone"></div>
+    </div>
+
+    <footer>Design by Rome💙</footer>
   </div>
 
-  <div class="meta">
-    <div class="chip" id="date">--</div>
-    <div class="chip" id="weekday">--</div>
-    <div class="chip" id="tz">Asia/Yangon</div>
-    <div class="chip" id="offset">--</div>
-  </div>
+  <script>
+    const timeEl = document.getElementById("time");
+    const secondsEl = document.getElementById("seconds");
+    const dateEl = document.getElementById("date");
+    const dayEl = document.getElementById("day");
+    const zoneEl = document.getElementById("zone");
+    const tzSelect = document.getElementById("timezone");
+    const t12 = document.getElementById("t12");
+    const t24 = document.getElementById("t24");
 
-  <div class="controls">
-    <button id="toggle12">12-hour</button>
-    <button id="toggle24" class="active">24-hour</button>
-    
-  </div>
+    let is24 = true;
 
-  <div class="footer">design by<code></code> Rome<strong></strong> </div>
-</div>
+    function updateClock() {
+      const tz = tzSelect.value;
+      const now = new Date().toLocaleString("en-US", { timeZone: tz });
+      const date = new Date(now);
 
-  </main>  <script>
-    // မြန်မာလို comment: ဒီ script က Asia/Yangon (Myanmar) timezone ကို real-time ပြပေးတယ်
+      let hours = date.getHours();
+      const minutes = date.getMinutes().toString().padStart(2, "0");
+      const seconds = date.getSeconds().toString().padStart(2, "0");
+      const ampm = hours >= 12 ? "PM" : "AM";
 
-    const timeEl = document.getElementById('time');
-    const secondsEl = document.getElementById('seconds');
-    const ampmEl = document.getElementById('ampm');
-    const dateEl = document.getElementById('date');
-    const weekdayEl = document.getElementById('weekday');
-    const offsetEl = document.getElementById('offset');
-    const tzEl = document.getElementById('tz');
+      if (!is24) {
+        hours = hours % 12 || 12;
+      }
 
-    let use24 = true; // default 24-hour
-
-    const optsBase = { timeZone: 'Asia/Yangon' };
-
-    function pad(n){ return n.toString().padStart(2,'0') }
-
-    function updateClock(){
-      // current time in Yangon as a Date-like string via Intl
-      const now = new Date();
-
-      // get localized parts for the timezone
-      const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Yangon',
-        year: 'numeric', month: 'long', day: 'numeric',
-        weekday: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !use24,
-        timeZoneName: 'short'
-      }).formatToParts(now);
-
-      // collect parts to a map for easy use
-      const map = {};
-      for(const p of parts){ if(p.type !== 'literal') map[p.type] = p.value }
-
-      // build display strings
-      const hour = map.hour ?? '--';
-      const minute = map.minute ?? '--';
-      const second = map.second ?? '--';
-      const ampm = map.dayPeriod ?? (use24 ? '' : '');
-
-      timeEl.textContent = `${hour}:${minute}`;
-      secondsEl.textContent = `${second} s`;
-      ampmEl.textContent = use24 ? '' : (ampm || '');
-
-      dateEl.textContent = `${map.day ?? '--'} ${map.month ?? ''} ${map.year ?? ''}`;
-      weekdayEl.textContent = `${map.weekday ?? ''}`;
-
-      // timezone short name (e.g. GMT+6:30) appears in timeZoneName part (type 'timeZoneName')
-      const tzname = map.timeZoneName ?? 'GMT+6:30';
-      offsetEl.textContent = tzname;
-
-      // accessibility title
-      document.title = `Myanmar Time — ${hour}:${minute}:${second}`;
+      timeEl.textContent = `${hours.toString().padStart(2, "0")}:${minutes}`;
+      secondsEl.textContent = `${seconds}s ${is24 ? "" : ampm}`;
+      dateEl.textContent = date.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+      dayEl.textContent = date.toLocaleDateString("en-GB", { weekday: "long" });
+      zoneEl.textContent = tz;
     }
 
-    // start and keep running
+    setInterval(updateClock, 1000);
     updateClock();
-    // run every 250ms to keep seconds smooth (not heavy)
-    setInterval(updateClock, 250);
 
-    // controls
-    document.getElementById('toggle12').addEventListener('click', ()=>{
-      use24 = false; document.getElementById('toggle12').classList.add('active'); document.getElementById('toggle24').classList.remove('active'); updateClock();
-    });
-    document.getElementById('toggle24').addEventListener('click', ()=>{
-      use24 = true; document.getElementById('toggle24').classList.add('active'); document.getElementById('toggle12').classList.remove('active'); updateClock();
-    });
-
-    document.getElementById('copyBtn').addEventListener('click', async ()=>{
-      try{
-        const text = `${timeEl.textContent}:${secondsEl.textContent.replace(' s','')} (Asia/Yangon)`;
-        await navigator.clipboard.writeText(text);
-        const old = document.getElementById('copyBtn').textContent;
-        document.getElementById('copyBtn').textContent = 'Copied!';
-        setTimeout(()=> document.getElementById('copyBtn').textContent = old, 1200);
-      }catch(e){
-        alert('Copy failed — your browser may block clipboard access.');
-      }
-    });
-  </script></body>
+    t12.onclick = () => { is24 = false; t12.classList.add("active"); t24.classList.remove("active"); };
+    t24.onclick = () => { is24 = true; t24.classList.add("active"); t12.classList.remove("active"); };
+  </script>
+</body>
 </html>
